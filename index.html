@@ -5,16 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>22사단 부사관 급여 계산기</title>
     <style>
-        /* [CSS] 토스 스타일 다크모드 및 반응형 모바일 UI 설정 */
         :root {
             --bg-color: #000000;
             --surface: #1C1C1E;
             --surface-hover: #2C2C2E;
             --text-primary: #FFFFFF;
             --text-secondary: #8E8E93;
-            --accent: #3182F6; /* 토스 블루 */
+            --accent: #3182F6;
             --accent-dim: rgba(49, 130, 246, 0.2);
-            --danger: #FF453A;
+            --danger-dim: rgba(255, 69, 58, 0.15);
             --border-radius: 16px;
         }
 
@@ -36,9 +35,9 @@
 
         .app-container {
             width: 100%;
-            max-width: 480px; /* 모바일 최대 너비 */
+            max-width: 480px;
             min-height: 100vh;
-            padding: 24px 20px 100px 20px;
+            padding: 24px 20px 140px 20px;
             display: flex;
             flex-direction: column;
             gap: 24px;
@@ -60,23 +59,23 @@
             gap: 16px;
         }
 
+        /* 접근성(A11y) 개선을 위해 label 기본 속성 상속 */
         .label {
             font-size: 15px;
             font-weight: 600;
-            color: var(--text-primary);
             display: flex;
             justify-content: space-between;
             align-items: center;
+            cursor: pointer;
+            width: 100%;
         }
 
         .desc {
             font-size: 13px;
             color: var(--text-secondary);
             margin-top: 4px;
-            font-weight: 400;
         }
 
-        /* 날짜 입력 */
         input[type="date"] {
             width: 100%;
             background-color: var(--surface-hover);
@@ -86,9 +85,9 @@
             border-radius: 12px;
             font-size: 16px;
             color-scheme: dark;
+            outline: none;
         }
 
-        /* 가로 나열 버튼 (세그먼트 컨트롤) */
         .segment-group {
             display: flex;
             background-color: var(--surface-hover);
@@ -107,7 +106,7 @@
             font-weight: 600;
             border-radius: 8px;
             cursor: pointer;
-            transition: all 0.2s ease;
+            transition: 0.2s;
         }
 
         .segment-btn.active {
@@ -116,266 +115,222 @@
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
-        /* 슬라이더 바 */
+        /* 슬라이더 시각화 (선택 불가 구간 스냅 표시) */
         .slider-container {
             position: relative;
-            padding: 10px 0 20px 0;
+            padding: 10px 0 25px 0;
+        }
+
+        .slider-track {
+            position: absolute;
+            top: 25px; left: 0; right: 0;
+            height: 8px;
+            background: var(--surface-hover);
+            border-radius: 4px;
+            transform: translateY(-50%);
+            pointer-events: none;
+            overflow: hidden;
+            z-index: 0;
+        }
+
+        /* 50% 이후는 건너뛰는(선택 불가) 구간임을 빗금으로 명확히 안내 */
+        .slider-track::after {
+            content: ''; position: absolute; left: 50%; width: 50%; height: 100%;
+            background: repeating-linear-gradient(45deg, var(--danger-dim), var(--danger-dim) 6px, transparent 6px, transparent 12px);
+        }
+
+        .slider-fill {
+            position: absolute;
+            top: 25px; left: 0;
+            height: 8px;
+            background: var(--accent);
+            transform: translateY(-50%);
+            border-radius: 4px;
+            pointer-events: none;
+            transition: width 0.1s;
+            z-index: 1;
         }
 
         input[type="range"] {
             -webkit-appearance: none;
-            width: 100%;
-            height: 6px;
-            background: var(--surface-hover);
-            border-radius: 3px;
+            width: 100%; height: 30px;
+            background: transparent;
             outline: none;
+            position: relative;
+            z-index: 2; margin: 0;
         }
 
         input[type="range"]::-webkit-slider-thumb {
             -webkit-appearance: none;
-            appearance: none;
-            width: 24px;
-            height: 24px;
+            width: 26px; height: 26px;
             border-radius: 50%;
             background: var(--accent);
+            border: 3px solid var(--bg-color);
             cursor: pointer;
             box-shadow: 0 0 10px rgba(49, 130, 246, 0.5);
             transition: transform 0.1s;
         }
 
+        input[type="range"]:active::-webkit-slider-thumb { transform: scale(1.15); }
         input[type="range"]:disabled::-webkit-slider-thumb {
-            background: var(--text-secondary);
-            box-shadow: none;
+            background: var(--text-secondary); box-shadow: none; border-color: var(--surface);
         }
 
         .slider-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-top: 8px;
-            position: absolute;
-            width: 100%;
-            bottom: -5px;
+            display: flex; position: absolute; width: 100%; bottom: 0px;
+            font-size: 12px; color: var(--text-secondary);
         }
+        .slider-labels span { position: absolute; transform: translateX(-50%); }
 
-        .slider-labels span {
-            position: absolute;
-            transform: translateX(-50%);
-        }
+        .slider-val-display { font-size: 18px; font-weight: 700; color: var(--accent); }
 
-        .slider-val-display {
-            font-size: 18px;
-            font-weight: 700;
-            color: var(--accent);
-        }
-
-        /* 토글 스위치 */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 28px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
+        .toggle-switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+        .toggle-switch input { opacity: 0; width: 0; height: 0; }
 
         .slider-toggle {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: var(--surface-hover);
-            transition: .3s;
-            border-radius: 28px;
+            position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--surface-hover); transition: .3s; border-radius: 28px;
+            pointer-events: none; /* 클릭 이벤트를 부모 label로 넘김 */
         }
-
         .slider-toggle:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .3s;
-            border-radius: 50%;
+            position: absolute; content: ""; height: 20px; width: 20px;
+            left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%;
         }
 
-        input:checked + .slider-toggle {
-            background-color: var(--accent);
-        }
+        input:checked + .slider-toggle { background-color: var(--accent); }
+        input:checked + .slider-toggle:before { transform: translateX(22px); }
 
-        input:checked + .slider-toggle:before {
-            transform: translateX(22px);
-        }
-
-        /* 결과창 */
         .result-section {
             background: linear-gradient(145deg, #1C1C1E, #121212);
-            border: 1px solid rgba(255,255,255,0.05);
-            border-radius: 24px;
-            padding: 28px 20px;
-            margin-top: 10px;
+            border-radius: 24px; padding: 28px 20px; margin-top: 10px;
         }
 
-        .result-item {
-            margin-bottom: 24px;
-        }
-
-        .result-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .result-title {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-
-        .result-value {
-            font-size: 32px;
-            font-weight: 800;
-            color: var(--text-primary);
-            display: flex;
-            align-items: baseline;
-            gap: 4px;
-        }
-
-        .result-value span {
-            font-size: 20px;
-            font-weight: 600;
-        }
-
-        .result-value.accent {
-            color: var(--accent);
-        }
-
-        .disclaimer {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-top: 16px;
-            background: var(--surface-hover);
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-        }
+        .result-item { margin-bottom: 24px; }
+        .result-item:last-child { margin-bottom: 0; }
+        .result-title { font-size: 14px; color: var(--text-secondary); margin-bottom: 8px; }
+        .result-value { font-size: 32px; font-weight: 800; display: flex; align-items: baseline; gap: 4px; }
+        .result-value span { font-size: 20px; }
+        .result-value.accent { color: var(--accent); }
 
         .bonus-info {
-            font-size: 13px;
-            color: var(--text-primary);
-            background: var(--accent-dim);
-            padding: 10px 12px;
-            border-radius: 8px;
-            margin-top: -8px;
-            margin-bottom: 16px;
+            font-size: 13px; background: var(--accent-dim);
+            padding: 10px 12px; border-radius: 8px; margin-bottom: 16px;
         }
 
-        /* 하단 고정 버튼 */
+        /* 결과 상세 보기 (아코디언) */
+        details.breakdown {
+            margin-top: 24px; background-color: var(--surface-hover); border-radius: 12px; overflow: hidden;
+        }
+        details.breakdown summary {
+            padding: 16px; font-size: 14px; font-weight: 600; cursor: pointer; list-style: none;
+            display: flex; justify-content: space-between; align-items: center; color: var(--text-primary);
+        }
+        details.breakdown summary::-webkit-details-marker { display: none; }
+        details.breakdown summary::after { content: "▼"; font-size: 12px; color: var(--text-secondary); transition: transform 0.3s; }
+        details.breakdown[open] summary::after { transform: rotate(180deg); }
+
+        .breakdown-content { padding: 0 16px 16px 16px; display: flex; flex-direction: column; gap: 12px; font-size: 13px; }
+        .bd-item { display: flex; justify-content: space-between; color: var(--text-secondary); }
+        .bd-item span:last-child { color: var(--text-primary); font-weight: 600; }
+        .bd-item.deduct span:last-child { color: #FF453A; }
+        .bd-item.total { font-size: 14px; font-weight: 700; color: var(--accent); margin-top: 4px; }
+        .bd-item.total span:last-child { color: var(--accent); }
+        hr.bd-divider { border: none; border-top: 1px dashed rgba(255, 255, 255, 0.1); margin: 4px 0; }
+
+        /* 공유하기 버튼 */
+        .share-btn {
+            width: 100%; margin-top: 20px; padding: 16px; background-color: transparent;
+            color: var(--text-primary); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 12px;
+            font-size: 15px; font-weight: 600; cursor: pointer; display: flex; justify-content: center;
+            align-items: center; gap: 8px; transition: background-color 0.2s;
+        }
+        .share-btn:active { background-color: var(--surface-hover); }
+
+        .disclaimer {
+            font-size: 12px; color: var(--text-secondary); margin-top: 24px;
+            background: var(--surface-hover); padding: 14px; border-radius: 8px; text-align: left; line-height: 1.6;
+        }
+
         .fixed-btn-container {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 16px 20px 24px 20px;
-            background: linear-gradient(transparent, rgba(0,0,0,0.9) 30%);
-            display: flex;
-            justify-content: center;
-            z-index: 100;
+            position: fixed; bottom: 0; left: 0; width: 100%; padding: 16px 20px 24px 20px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.95) 30%); display: flex; justify-content: center; z-index: 100;
         }
 
         .submit-btn {
-            width: 100%;
-            max-width: 440px;
-            background-color: var(--accent);
-            color: white;
-            border: none;
-            padding: 18px;
-            font-size: 18px;
-            font-weight: 700;
-            border-radius: 16px;
-            cursor: pointer;
-            box-shadow: 0 4px 12px rgba(49, 130, 246, 0.4);
+            width: 100%; max-width: 440px; background-color: var(--accent); color: white; border: none; padding: 18px;
+            font-size: 16px; font-weight: 700; border-radius: 16px; cursor: pointer; box-shadow: 0 4px 12px rgba(49, 130, 246, 0.4);
         }
+
+        .footer-copyright { margin-top: 10px; padding: 20px 0 40px 0; text-align: center; }
+        .footer-copyright p { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
     </style>
 </head>
 <body>
 
 <div class="app-container">
     <div>
-        <h1>22사단 부사관<br>급여 계산기 💰</h1>
+        <h1>22사단 부사관 급여 계산기 💰</h1>
         <p class="desc">근무 조건에 따른 예상 실수령액을 확인해보세요.</p>
     </div>
 
-    <!-- 임관 예정일 -->
     <div class="section">
-        <div class="label">임관 예정일</div>
-        <input type="date" id="startDate" required>
+        <label for="startDate" class="label">임관 예정일</label>
+        <input type="date" id="startDate">
     </div>
 
-    <!-- 신분 선택 -->
     <div class="section">
-        <div class="label">신분 선택</div>
-        <div class="segment-group" id="statusGroup">
-            <button class="segment-btn active" data-value="term">임기제 부사관</button>
-            <button class="segment-btn" data-value="active">현역 부사관</button>
+        <div class="label" id="statusLabel">신분 선택</div>
+        <div class="segment-group" id="statusGroup" role="radiogroup" aria-labelledby="statusLabel">
+            <button class="segment-btn active" data-value="term" role="radio" aria-checked="true">임기제 부사관</button>
+            <button class="segment-btn" data-value="active" role="radio" aria-checked="false">현역 부사관</button>
         </div>
     </div>
 
-    <!-- 근무지 선택 -->
     <div class="section">
-        <div class="label">근무지 선택</div>
-        <div class="segment-group" id="locGroup">
-            <button class="segment-btn active" data-value="gop">GOP 부대</button>
-            <button class="segment-btn" data-value="coastal">해안경계 부대</button>
-            <button class="segment-btn" data-value="feba">FEBA 부대</button>
+        <div class="label" id="locLabel">근무지 선택</div>
+        <div class="segment-group" id="locGroup" role="radiogroup" aria-labelledby="locLabel">
+            <button class="segment-btn active" data-value="gop" role="radio" aria-checked="true">GOP 부대</button>
+            <button class="segment-btn" data-value="coastal" role="radio" aria-checked="false">해안경계 부대</button>
+            <button class="segment-btn" data-value="feba" role="radio" aria-checked="false">FEBA 부대</button>
         </div>
-        <div id="locDesc" class="desc">시간외 근무수당: 월 150시간 1년 내내 적용</div>
+        <div id="locDesc" class="desc">정보를 불러오는 중...</div>
     </div>
 
-    <!-- 복무 개월 수 (슬라이더) -->
     <div class="section">
         <div class="label">
-            복무 개월 수(현역부사관은 48개월 고정)
+            복무 개월 수
             <div class="slider-val-display" id="monthDisplay">6개월</div>
         </div>
-        <div class="desc" id="monthDesc">6~24개월, 36개월, 48개월 선택 가능</div>
+        <div class="desc">
+            6~24개월(1개월 단위), 36/48개월 선택 가능<br>
+            <span style="color: rgba(255, 69, 58, 0.8); font-size: 12px;">※ 빗금 구간(스킵 영역)은 건너뜁니다.</span>
+        </div>
         <div class="slider-container">
-            <!-- 
-                value 6~24 -> 실제 6~24개월
-                value 25 -> 36개월
-                value 26 -> 48개월 
-            -->
-            <input type="range" id="monthSlider" min="6" max="26" value="6">
+            <div class="slider-track"></div>
+            <div class="slider-fill" id="sliderFill"></div>
+            <input type="range" id="monthSlider" min="0" max="100" value="0" step="1" aria-label="복무 개월 수">
             <div class="slider-labels">
                 <span style="left: 0%;">6</span>
-                <span style="left: 90%;">24</span>
-                <span style="left: 95%;">36</span>
+                <span style="left: 50%;">24</span>
+                <span style="left: 75%;">36</span>
                 <span style="left: 100%;">48</span>
             </div>
         </div>
     </div>
 
-    <!-- 숙소 미이용 -->
     <div class="section">
-        <div class="label">
-            군 간부숙소 미이용 (주택수당)
-            <label class="toggle-switch">
+        <label for="housingToggle" class="label">
+            <span style="flex: 1;">군 간부숙소 미이용 <span style="font-weight: 400; font-size: 13px; color: var(--text-secondary);">(주택수당)</span></span>
+            <div class="toggle-switch">
                 <input type="checkbox" id="housingToggle">
                 <span class="slider-toggle"></span>
-            </label>
-        </div>
+            </div>
+        </label>
         <div class="desc">체크 시 매월 주택수당 160,000원이 추가됩니다.</div>
     </div>
 
-    <!-- 결과창 -->
     <div class="result-section">
-        <div class="bonus-info" id="bonusInfo">
-            명절휴가비 0회 / 성과상여금 0회 포함
-        </div>
+        <div class="bonus-info" id="bonusInfo">명절휴가비 및 성과상여금 계산 중...</div>
         <div class="result-item">
             <div class="result-title">세전 총 급여 (총 복무기간)</div>
             <div class="result-value"><span id="totalGross">0</span><span>원</span></div>
@@ -388,232 +343,282 @@
             <div class="result-title">총 세후 실수령액 (총 복무기간)</div>
             <div class="result-value accent"><span id="totalNet">0</span><span>원</span></div>
         </div>
-        
+
+        <details class="breakdown">
+            <summary>월 평균 급여 상세 보기</summary>
+            <div class="breakdown-content">
+                <div class="bd-item"><span>기본급</span><span id="bdBase">0원</span></div>
+                <div class="bd-item"><span>수당 (GOP/시간외/주택 등)</span><span id="bdAllowance">0원</span></div>
+                <div class="bd-item"><span>상여 (명절/성과/정근 분할)</span><span id="bdBonus">0원</span></div>
+                <hr class="bd-divider">
+                <div class="bd-item deduct"><span>공제액 (기여금/소득세 등)</span><span id="bdDeduct">0원</span></div>
+                <hr class="bd-divider">
+                <div class="bd-item total"><span>월 평균 실수령액</span><span id="bdNet">0원</span></div>
+            </div>
+        </details>
+
+        <button class="share-btn" onclick="shareResult()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width: 18px; height: 18px;">
+                <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"></path>
+                <polyline points="16 6 12 2 8 6"></polyline>
+                <line x1="12" y1="2" x2="12" y2="15"></line>
+            </svg>
+            결과 복사하여 공유하기
+        </button>
+
         <div class="disclaimer">
-            ※ 명절휴가비 및 성과상여금 지급 대상일 경우 포함된 금액입니다.<br>
-            ※ 세금 및 기여금 공제액은 단순화된 예상 금액으로 실제와 다를 수 있습니다.
+            ※ <b>기여금(군인연금)</b>은 전년도 과세소득 기준인 '기준소득월액'을 바탕으로 산정되며, 본 계산기에서는 임관 당해 추정치(기본급+고정수당)의 9%를 적용했습니다.<br><br>
+            ※ <b>소득세</b>는 누진세율이 적용되는 근로소득 간이세액표를 기준으로 약식 산출하여 정확도를 높였습니다. (연말정산에 따라 실제 금액과 다를 수 있습니다.)
         </div>
     </div>
+
+    <footer class="footer-copyright">
+        <p>&copy; <span id="year"></span> 22사단 부사관 급여 계산기. All rights reserved.</p>
+    </footer>
 </div>
 
-<!-- 하단 버튼 -->
 <div class="fixed-btn-container">
-    <button class="submit-btn" onclick="window.location.href='https://goroka.tistory.com/m/1'">부사관 지원 상담하기</button>
+    <button class="submit-btn" onclick="window.location.href='https://goroka.tistory.com/m/1'">다른 내용이 궁금하다면?</button>
 </div>
 
 <script>
-    /* 
-     *[JavaScript 로직 및 수당/공제 설정] 
-     */
-
-    // 오늘 날짜를 기본 임관일로 설정
+    document.getElementById('year').textContent = new Date().getFullYear();
     document.getElementById('startDate').valueAsDate = new Date();
 
-    // --- 수당 및 급여 기본값 (추후 수정 가능하도록 한글 주석 적용) ---
-    const BASE_SALARY_PER_HOBONG =[
-        2154300, // 하사 2호봉 (1년차, 0~11개월)
-        2175600, // 하사 3호봉 (2년차, 12~23개월)
-        2196900, // 하사 4호봉 (3년차, 24~35개월)
-        2218200, // 하사 5호봉 (4년차, 36~47개월)
-        2239500  // 하사 6호봉 (48개월 이상, 가상의 호봉 적용)
-    ];
-    
-    const OVERTIME_RATE = 10883;       // 시간외 근무수당 단가 (10,883원/시간)
-    const FIXED_OVERTIME = 108830;     // 시간외수당 정액분 (매월 10시간분)
-    const JOB_SUBSIDY = 165000;        // 직급보조비 (매월)
-    const MEAL_ALLOWANCE = 139770;     // 영외급식비 (매월)
-    const HOUSING_ALLOWANCE = 160000;  // 주택수당 (숙소 미이용시 매월)
-    const PERF_BONUS_BASE = 2183220;   // 성과상여금 연간 기준액
+    // 1. 상수 데이터 분리 (서버 연동 및 유지보수 관리 용이)
+    const PAY_DATA = {
+        BASE_SALARY_PER_HOBONG: [2154300, 2175600, 2196900, 2218200, 2239500],
+        OVERTIME_RATE: 10883,
+        FIXED_OVERTIME: 108830,
+        JOB_SUBSIDY: 165000,
+        MEAL_ALLOWANCE: 139770,
+        HOUSING_ALLOWANCE: 160000,
+        PERF_BONUS_BASE: 2183220,
+        PENSION_RATE: 0.09,      // 기준소득월액 기준 기여금 9%
+        HEALTH_INS_RATE: 0.03545 // 건강/장기요양보험 합산
+    };
 
-    // 이벤트 리스너 등록
-    document.getElementById('startDate').addEventListener('change', calculate);
-    document.getElementById('monthSlider').addEventListener('input', handleSliderChange);
-    document.getElementById('housingToggle').addEventListener('change', calculate);
-
-    // 버튼 세그먼트 이벤트 처리
-    document.querySelectorAll('.segment-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const group = this.parentElement.id;
-            document.querySelectorAll(`#${group} .segment-btn`).forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-            
-            if(group === 'statusGroup') handleStatusChange();
-            if(group === 'locGroup') handleLocationChange();
-            
-            calculate();
-        });
-    });
-
-    // 슬라이더 값을 실제 개월 수로 변환 (25->36개월, 26->48개월)
-    function getActualMonths(sliderValue) {
-        let val = parseInt(sliderValue);
-        if (val <= 24) return val;
-        if (val === 25) return 36;
-        if (val === 26) return 48;
-        return 48;
+    // 2. 소득세 간이세액표 누진세율 약식 계산 로직
+    function calculateIncomeTax(taxableIncome) {
+        if (taxableIncome <= 1060000) return 0;
+        
+        let tax = 0;
+        if (taxableIncome <= 1500000) tax = (taxableIncome - 1060000) * 0.01;
+        else if (taxableIncome <= 2500000) tax = 4400 + (taxableIncome - 1500000) * 0.03;
+        else if (taxableIncome <= 4000000) tax = 34400 + (taxableIncome - 2500000) * 0.05;
+        else tax = 109400 + (taxableIncome - 4000000) * 0.07;
+        
+        // 지방소득세 10% 포함 반환
+        return Math.floor(tax * 1.1);
     }
 
+    function getActualMonths(sliderValue) {
+        let val = parseInt(sliderValue);
+        if (val <= 50) return Math.round(6 + (val / 50) * 18);
+        else if (val <= 75) return 36;
+        else return 48;
+    }
+
+    // 3. 슬라이더 스냅(자석 효과) 처리
     function handleSliderChange() {
-        let months = getActualMonths(document.getElementById('monthSlider').value);
+        let slider = document.getElementById('monthSlider');
+        let val = parseInt(slider.value);
+        
+        // 50~75, 75~100 사이 중간 선택을 막고 자석처럼 붙게 함
+        if (val > 50 && val <= 62) val = 50;
+        else if (val > 62 && val < 75) val = 75;
+        else if (val > 75 && val <= 87) val = 75;
+        else if (val > 87 && val < 100) val = 100;
+        
+        slider.value = val;
+        document.getElementById('sliderFill').style.width = val + '%';
+
+        let months = getActualMonths(val);
         document.getElementById('monthDisplay').innerText = months + "개월";
         calculate();
     }
 
-    // 신분 선택 변경 시 로직 (현역은 48개월 고정)
     function handleStatusChange() {
         const status = document.querySelector('#statusGroup .active').dataset.value;
         const slider = document.getElementById('monthSlider');
         if (status === 'active') {
-            slider.value = 26; // 48개월
+            slider.value = 100;
             slider.disabled = true;
+            document.getElementById('sliderFill').style.width = '100%';
             document.getElementById('monthDisplay').innerText = "48개월 (고정)";
         } else {
             slider.disabled = false;
-            let months = getActualMonths(slider.value);
-            document.getElementById('monthDisplay').innerText = months + "개월";
+            let val = parseInt(slider.value);
+            document.getElementById('sliderFill').style.width = val + '%';
+            document.getElementById('monthDisplay').innerText = getActualMonths(val) + "개월";
         }
     }
 
-    // 근무지 선택 변경 시 설명 업데이트
     function handleLocationChange() {
         const loc = document.querySelector('#locGroup .active').dataset.value;
         const descEl = document.getElementById('locDesc');
-        if (loc === 'gop') {
-            descEl.innerText = "시간외 근무수당: 월 150시간 1년 내내 적용 / 영외급식비 미지급";
-        } else if (loc === 'coastal') {
-            descEl.innerText = "시간외 근무수당: 월 150시간 (1년 중 8개월만 적용) / 영외급식비 일부 미지급";
-        } else {
-            descEl.innerText = "시간외 근무수당 미적용 (정액분만 지급) / 영외급식비 전액 지급";
-        }
+        if (loc === 'gop') descEl.innerText = "시간외 수당: 월 150시간 적용 / 영외급식비 미지급";
+        else if (loc === 'coastal') descEl.innerText = "시간외 수당: 8개월간 150시간 적용 / 영외급식비 일부 지급";
+        else descEl.innerText = "시간외 수당: 정액분만 지급 / 영외급식비 전액 지급";
     }
 
-    // 애니메이션 숫자 카운트 함수
     function animateValue(id, end) {
         const obj = document.getElementById(id);
         const start = parseInt(obj.innerText.replace(/,/g, '')) || 0;
         const duration = 500;
         let startTimestamp = null;
-        
         const step = (timestamp) => {
             if (!startTimestamp) startTimestamp = timestamp;
             const progress = Math.min((timestamp - startTimestamp) / duration, 1);
-            // easeOutQuart
             const easeProgress = 1 - Math.pow(1 - progress, 4);
             const current = Math.floor(start + (end - start) * easeProgress);
             obj.innerText = current.toLocaleString();
-            if (progress < 1) {
-                window.requestAnimationFrame(step);
-            } else {
-                obj.innerText = Math.floor(end).toLocaleString();
-            }
+            if (progress < 1) window.requestAnimationFrame(step);
+            else obj.innerText = Math.floor(end).toLocaleString();
         };
         window.requestAnimationFrame(step);
     }
 
-    // 메인 급여 계산 로직
     function calculate() {
         const startDateInput = document.getElementById('startDate').value;
         if (!startDateInput) return;
         
-        const startDate = new Date(startDateInput);
         const loc = document.querySelector('#locGroup .active').dataset.value;
         const duration = getActualMonths(document.getElementById('monthSlider').value);
         const hasHousing = document.getElementById('housingToggle').checked;
 
-        let totalGross = 0;
-        let totalNet = 0;
-        let holidayCount = 0;
-        let perfBonusCount = 0;
+        let totalGross = 0, totalNet = 0, holidayCount = 0;
+        let sumBase = 0, sumAllowance = 0, sumBonus = 0, sumDeduct = 0;
+        let currentDate = new Date(startDateInput);
 
-        let currentDate = new Date(startDate);
-
-        // 개월 수 단위로 루프 돌며 매월 급여 계산
         for (let i = 0; i < duration; i++) {
-            let month = currentDate.getMonth() + 1; // 1 ~ 12
-            
-            // 호봉 계산 (12개월마다 1호봉 상승)
-            let hobongIndex = Math.min(Math.floor(i / 12), BASE_SALARY_PER_HOBONG.length - 1);
-            let currentBase = BASE_SALARY_PER_HOBONG[hobongIndex];
+            let month = currentDate.getMonth() + 1;
+            let hobongIndex = Math.min(Math.floor(i / 12), PAY_DATA.BASE_SALARY_PER_HOBONG.length - 1);
+            let currentBase = PAY_DATA.BASE_SALARY_PER_HOBONG[hobongIndex];
 
-            // 기본 포함: 기본급 + 시간외 정액 + 직급보조비
-            let monthlyGross = currentBase + FIXED_OVERTIME + JOB_SUBSIDY;
+            // 기본 수당
+            let allowance = PAY_DATA.FIXED_OVERTIME + PAY_DATA.JOB_SUBSIDY;
+            if (hasHousing) allowance += PAY_DATA.HOUSING_ALLOWANCE;
 
-            // 주택수당 적용
-            if (hasHousing) {
-                monthlyGross += HOUSING_ALLOWANCE;
-            }
-
-            // 근무지별 시간외수당 및 영외급식비 차등 적용
+            // 근무지별 특수 수당 (시간외 및 급식비)
             if (loc === 'gop') {
-                // GOP: 150시간 연중 적용, 영외급식비 미지급
-                monthlyGross += (OVERTIME_RATE * 150);
+                allowance += (PAY_DATA.OVERTIME_RATE * 150);
             } else if (loc === 'coastal') {
-                // 해안경계: 1년 중 8개월만 150시간 적용 (월평균 분할 적용)
-                monthlyGross += (OVERTIME_RATE * 150 * (8/12));
-                // 해안경계: 1년 중 4개월만 영외급식비 지급 (월평균 분할 적용)
-                monthlyGross += (MEAL_ALLOWANCE * (4/12));
+                allowance += (PAY_DATA.OVERTIME_RATE * 150 * (8/12));
+                allowance += (PAY_DATA.MEAL_ALLOWANCE * (4/12));
             } else {
-                // FEBA: 시간외 미적용, 영외급식비 100% 지급
-                monthlyGross += MEAL_ALLOWANCE;
+                allowance += PAY_DATA.MEAL_ALLOWANCE;
             }
 
-            // 정근수당 (매년 1월, 7월 지급)
+            // 상여금
+            let bonus = 0;
             if (month === 1 || month === 7) {
-                let serviceYears = Math.floor(i / 12);
-                let diligentRate = 0.05 + (serviceYears * 0.05); // 최초 5%, 1년마다 5% 상승
-                if (diligentRate > 0.5) diligentRate = 0.5; // 최대 한도 50%
-                monthlyGross += (currentBase * diligentRate);
+                let diligentRate = Math.min(0.05 + (Math.floor(i/12) * 0.05), 0.5);
+                bonus += (currentBase * diligentRate);
             }
-
-            // 명절휴가비 (설날: 2월, 추석: 9월로 단순화하여 가정)
             if (month === 2 || month === 9) {
-                monthlyGross += (currentBase * 0.6);
+                bonus += (currentBase * 0.6);
                 holidayCount++;
             }
+            bonus += (PAY_DATA.PERF_BONUS_BASE / 12);
 
-            // 성과상여금 (근무기간 비례하여 총액 산정을 위해 매월 안분하여 계산)
-            // 연간 기준액(2,183,220원)을 12개월로 나누어 매월 적립하는 형태로 단순화
-            let monthlyPerf = PERF_BONUS_BASE / 12;
-            monthlyGross += monthlyPerf;
+            let monthlyGross = currentBase + allowance + bonus;
 
-            // --- 공제 항목 계산 (월별 소득고려 단순화된 비율 적용) ---
-            let pension = currentBase * 0.07; // 군인 기여금 (기본급의 약 7%)
-            let health = currentBase * 0.03545; // 건강보험료 (약 3.545%)
-            let longTermCare = health * 0.1295; // 장기요양보험료 (건보료의 12.95%)
-            // 소득세 및 지방소득세는 과세표준 구간에 따라 다르나, 평균적인 간이세액 비율인 약 3.3% 적용
-            let incomeTax = monthlyGross * 0.03; 
-            let localTax = incomeTax * 0.1;
+            // 공제 계산
+            let pensionBase = currentBase + PAY_DATA.FIXED_OVERTIME + PAY_DATA.JOB_SUBSIDY;
+            let pension = pensionBase * PAY_DATA.PENSION_RATE;
+            let healthIns = monthlyGross * PAY_DATA.HEALTH_INS_RATE;
+            
+            // 소득세: 식대(비과세) 제외 후 적용
+            let mealDeduct = (loc === 'feba') ? PAY_DATA.MEAL_ALLOWANCE : (loc === 'coastal' ? PAY_DATA.MEAL_ALLOWANCE * (4/12) : 0);
+            let tax = calculateIncomeTax(monthlyGross - mealDeduct);
 
-            let totalDeduction = pension + health + longTermCare + incomeTax + localTax;
-            let monthlyNet = monthlyGross - totalDeduction;
+            let deductions = pension + healthIns + tax;
+
+            // 아코디언 출력을 위한 누적
+            sumBase += currentBase;
+            sumAllowance += allowance;
+            sumBonus += bonus;
+            sumDeduct += deductions;
 
             totalGross += monthlyGross;
-            totalNet += monthlyNet;
-
-            // 다음 달로 이동
+            totalNet += (monthlyGross - deductions);
             currentDate.setMonth(currentDate.getMonth() + 1);
         }
 
-        // 성과상여금 수령 횟수 환산 (총 근무개월 / 12, 소수점 1자리)
-        perfBonusCount = (duration / 12).toFixed(1);
-
-        // 정보 업데이트
-        document.getElementById('bonusInfo').innerText = 
-            `명절휴가비 ${holidayCount}회 / 성과상여금 ${perfBonusCount}회(환산) 포함`;
-
-        // 결과 애니메이션 출력
-        let avgNet = duration > 0 ? (totalNet / duration) : 0;
+        document.getElementById('bonusInfo').innerText = `명절휴가비 ${holidayCount}회 / 성과상여금 ${(duration/12).toFixed(1)}회 포함`;
         
         animateValue('totalGross', totalGross);
-        animateValue('avgNet', avgNet);
+        animateValue('avgNet', totalNet / duration);
         animateValue('totalNet', totalNet);
+
+        // 아코디언 월 평균 내역 업데이트
+        document.getElementById('bdBase').innerText = Math.floor(sumBase / duration).toLocaleString() + "원";
+        document.getElementById('bdAllowance').innerText = Math.floor(sumAllowance / duration).toLocaleString() + "원";
+        document.getElementById('bdBonus').innerText = Math.floor(sumBonus / duration).toLocaleString() + "원";
+        document.getElementById('bdDeduct').innerText = "-" + Math.floor(sumDeduct / duration).toLocaleString() + "원";
+        document.getElementById('bdNet').innerText = Math.floor(totalNet / duration).toLocaleString() + "원";
     }
 
-    // 초기화 실행
+    // 4. 결과 공유하기 기능 (수정 완료)
+    function shareResult() {
+        // 선택된 신분과 부대유형 가져오기 (정규식으로 띄어쓰기 공백 완벽 제거)
+        const statusText = document.querySelector('#statusGroup .active').innerText.replace(/\s+/g, '');
+        const locText = document.querySelector('#locGroup .active').innerText.replace(/\s+/g, '');
+        
+        const months = document.getElementById('monthDisplay').innerText;
+        const totalGross = document.getElementById('totalGross').innerText;
+        const avgNet = document.getElementById('avgNet').innerText;
+        const totalNet = document.getElementById('totalNet').innerText;
+
+        // 최종 공유 텍스트 포맷 구성
+        const text = `[22사단 부사관 예상 급여 계산 결과]\n\n` +
+                     `🎖️ 복무 구분: ${statusText}\n` +
+                     `🗓️ 복무 기간: ${months}\n` +
+                     `🏕️ 부대 유형: ${locText}\n\n` +
+                     `💰 세전 총 급여: ${totalGross}원\n` +
+                     `💵 월 평균 실수령액: ${avgNet}원\n` +
+                     `💎 총 세후 실수령액: ${totalNet}원\n\n` +
+                     `※ 실제 수령액과 약간의 차이가 있을 수 있습니다.\n\n` +
+                     `🔗[부사관 급여 계산기]\n` +
+                     `https://eekky3.github.io/goroka/`; // 원하시는 문구와 링크로 언제든 수정 가능합니다.
+
+        if (navigator.share) {
+            navigator.share({ text: text }).catch(console.error);
+        } else {
+            navigator.clipboard.writeText(text).then(() => {
+                alert('결과가 클립보드에 복사되었습니다!\n원하시는 곳에 붙여넣기 하세요.');
+            }).catch(() => {
+                alert('복사에 실패했습니다. 기기 설정을 확인해주세요.');
+            });
+        }
+    }
+
+    // Event Listeners
+    document.getElementById('monthSlider').addEventListener('input', handleSliderChange);
+    document.getElementById('startDate').addEventListener('change', calculate);
+    document.getElementById('housingToggle').addEventListener('change', calculate);
+    
+    document.querySelectorAll('.segment-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const group = this.parentElement.id;
+            document.querySelectorAll(`#${group} .segment-btn`).forEach(b => {
+                b.classList.remove('active');
+                b.setAttribute('aria-checked', 'false');
+            });
+            this.classList.add('active');
+            this.setAttribute('aria-checked', 'true');
+            if(group === 'statusGroup') handleStatusChange();
+            if(group === 'locGroup') handleLocationChange();
+            calculate();
+        });
+    });
+
+    // Init
+    document.getElementById('sliderFill').style.width = document.getElementById('monthSlider').value + '%';
     handleStatusChange();
     handleLocationChange();
     calculate();
-
 </script>
 </body>
 </html>
